@@ -1,12 +1,13 @@
-from envparse import Env
 from fastapi import FastAPI
-from fastapi.routing import APIRouter
 import uvicorn
 
 from app.api.tasks import router
+from app.errors_handlers import register_errors_handlers
 from app.settings import settings
 
 app = FastAPI()
+
+register_errors_handlers(app)
 
 app.include_router(router, prefix='/tasks', tags=["tasks"])
 

@@ -1,8 +1,9 @@
-from fastapi import HTTPException
-from asyncpg.exceptions import UniqueViolationError
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.exceptions import TaskNotFoundError, TaskAlreadyExistsError
 from app.models.tasks import TaskModel, TaskWatcherModel
 
 
@@ -21,9 +22,17 @@ class TaskRepository:
         except IntegrityError as e:
             await self.session.rollback()
             if getattr(e.orig, 'pgcode', None) == '23505':
-                raise HTTPException(status_code=400, detail="task with such title already exists")
-            raise HTTPException(status_code=500, detail="Integrity error")
+                raise TaskAlreadyExistsError(task.title)
+            raise
         return task.id
 
     async def get_task(self, task_id: int) -> TaskModel:
-        pass
+        query = (
+            select(TaskModel)
+            .options(selectinload(TaskModel.watchers))
+            .where(TaskModel.id == task_id)
+        )
+        task = (await self.session.execute(query)).scalar_one_or_none()
+        if task is None:
+            raise TaskNotFoundError(task_id)
+        return task

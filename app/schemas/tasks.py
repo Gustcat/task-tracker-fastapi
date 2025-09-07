@@ -28,25 +28,19 @@ class TaskListSchema(BaseModel):
     author: int
     author_deleted: bool
     title: str = Field(min_length=2, max_length=250)
-    description: str = None
+    description: str | None = None
     status: TaskStatus = TaskStatus.NEW
-    operator: int = None
+    operator: int | None = None
     operator_deleted: bool
 
     class Config:
         from_attributes = True
 
-    def to_response(self):
-        data = self.model_dump()
-        if self.operator is None:
-            data.pop("operator_deleted", None)
-        return data
-
 
 class TaskDetail(TaskListSchema):
     watchers: list[int]
-    target_date: date = None
-    completed_at: datetime = None
+    target_date: date | None = None
+    completed_at: datetime | None = None
     created_at: datetime = None
     updated_at: datetime = None
 
