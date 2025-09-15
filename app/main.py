@@ -12,6 +12,9 @@ register_errors_handlers(app)
 app.include_router(router, prefix='/tasks', tags=["tasks"])
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=settings.http_host, port=settings.http_port)
+    uvicorn.run("main:app",
+                host=settings.http_host,
+                port=settings.http_port,
+                reload=True)
 
 

@@ -13,4 +13,5 @@ class TaskAlreadyExistsError(AppError):
 
 
 class ForbiddenForUserRole(AppError):
-    pass
+    def __init__(self, msg_end: str):
+        super().__init__(f"User with USER role cannot  {msg_end}")
