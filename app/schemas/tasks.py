@@ -2,24 +2,48 @@ from datetime import date, datetime
 from typing import Literal
 
 from fastapi import HTTPException
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
 from app.models.tasks import TaskStatus
 
 
-class TaskCreateSchema(BaseModel):
-    title: str = Field(min_length=2, max_length=250)
+class TaskChangeSchema(BaseModel):
     description: str | None = None
-    status: TaskStatus = TaskStatus.NEW
-    watch_self: bool = False
     operator: int | None = None
     target_date: date | None = None
+    status: TaskStatus | None = None
 
     @field_validator("target_date")
     def validate_target_date(cls, value):
-        if date.today() > value:
+        if value and date.today() > value:
             raise HTTPException(
                 status_code=422, detail="due date should not earlier then now"
+            )
+        return value
+
+
+class TaskCreateSchema(TaskChangeSchema):
+    title: str = Field(min_length=2, max_length=250)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def set_default_status(cls, values):
+        if not values.status:
+            values.status = TaskStatus.TODO if values.operator else TaskStatus.NEW
+        return values
+
+
+class TaskUpdateSchema(TaskChangeSchema):
+    title: str | None = Field(min_length=2, max_length=250, default=None)
+    status: TaskStatus | None = None
+
+    @field_validator("title", "description", "status", mode="before")
+    def forbid_null_for_some_fields(cls, value, info):
+        if value is None:
+            raise ValueError(
+                f"Field '{info.field_name}' cannot be null. "
+                f"Omit it if you don't want to update this field."
             )
         return value
 
@@ -43,15 +67,6 @@ class TaskDetailSchema(TaskListSchema):
     completed_at: datetime | None = None
     created_at: datetime = None
     updated_at: datetime = None
-
-
-class TaskUpdateSchema(BaseModel):
-    title: str | None = Field(min_length=2, max_length=250, default=None)
-    description: str | None = None
-    status: TaskStatus | None = None
-    operator: int | None = None
-    target_date: date | None = None
-    watch_self: bool | None = None
 
 
 class BaseFilter(BaseModel):

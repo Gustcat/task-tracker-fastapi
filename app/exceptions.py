@@ -15,3 +15,17 @@ class TaskAlreadyExistsError(AppError):
 class ForbiddenForUserRole(AppError):
     def __init__(self, msg_end: str):
         super().__init__(f"User with USER role cannot  {msg_end}")
+
+
+class InvalidTaskStateError(AppError):
+    pass
+
+
+class TaskWatcherAlreadyExistsError(AppError):
+    def __init__(self, task_id: int):
+        super().__init__(f"You are already watching for task with {task_id=}")
+
+
+class TaskWatcherNotFoundError(AppError):
+    def __init__(self, task_id: int):
+        super().__init__(f"Task with {task_id=} not found")

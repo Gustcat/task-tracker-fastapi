@@ -1,15 +1,3 @@
-# from envparse import Env
-#
-# env = Env()
-#
-# DB_USER = env.str("POSTGRES_USER", default="user")
-# DB_PASS = env.str("POSTGRES_PASSWORD", default="password")
-# DB_PORT = env.int("POSTGRES_PORT", default=5432)
-# DB_NAME = env.str("POSTGRES_DB", default="task")
-#
-# REAL_DATABASE_URL = (
-#     f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@localhost:{DB_PORT}/{DB_NAME}"
-# )
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,15 +13,11 @@ class Settings(BaseSettings):
     http_port: int = Field(default=8081, alias="HTTP_PORT")
 
     model_config = SettingsConfigDict(
-        env_file="../.env",
-        env_file_encoding="utf-8",
-        extra="ignore"
+        env_file="../.env", env_file_encoding="utf-8", extra="ignore"
     )
 
 
 settings = Settings()
 print(settings)
 
-REAL_DATABASE_URL = (
-    f"postgresql+asyncpg://{settings.db_user}:{settings.db_pass}@localhost:{settings.db_port}/{settings.db_name}"
-)
+REAL_DATABASE_URL = f"postgresql+asyncpg://{settings.db_user}:{settings.db_pass}@localhost:{settings.db_port}/{settings.db_name}"
