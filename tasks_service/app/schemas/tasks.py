@@ -70,7 +70,7 @@ class TaskDetailSchema(TaskListSchema):
 
 
 class BaseFilter(BaseModel):
-    limit: int = Field(25, gt=0)
+    limit: int = Field(25, gt=0, le=100)
     offset: int = Field(0, ge=0)
     order_by: Literal["created_at", "updated_at"] = "created_at"
 

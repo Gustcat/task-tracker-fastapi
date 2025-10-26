@@ -12,6 +12,7 @@ from app.schemas.tasks import (
     TaskUpdateSchema,
 )
 from app.schemas.users import User, Role
+from app.сlients.user_client import UserClient
 
 
 def validate_input_task(user: User, old_task: TaskModel | None, task_dict: dict):
@@ -75,12 +76,18 @@ def validate_input_task(user: User, old_task: TaskModel | None, task_dict: dict)
 
 
 class TaskService:
-    def __init__(self, task_repository: TaskRepository):
-        self.task_repository: TaskRepository = task_repository
+    def __init__(self, task_repository: TaskRepository, user_client: UserClient):
+        self.task_repository = task_repository
+        self.user_client = user_client
 
     async def create_task(self, task_schema: TaskCreateSchema, user: User) -> int:
         task_dict = task_schema.model_dump()
         validate_input_task(user, None, task_dict)
+        operator = task_dict.get("operator")
+        if operator:
+            user_exist = await self.user_client.check_user_exists(task_dict.get("operator"))
+            if not user_exist:
+                raise InvalidTaskStateError(f"Operator with id {operator} does not exist")
         task_dict["author"] = user.id
         task_id = await self.task_repository.create_task(task_dict)
         return task_id
@@ -89,7 +96,6 @@ class TaskService:
         task = await self.task_repository.get_task_with_watchers(task_id)
         task_data = task.__dict__.copy()
         task_data["watchers"] = [w.user_id for w in task.watchers]
-        # добавить batch-запрос к user-сервису для всех user_id
         task_schema = TaskDetailSchema.model_validate(task_data)
         return task_schema
 
@@ -111,6 +117,11 @@ class TaskService:
             task = await self.task_repository.get_basic_task(task_id)
             task_dict = task_update_schema.model_dump(exclude_unset=True)
             validate_input_task(user, task, task_dict)
+            operator = task_dict.get("operator")
+            if operator:
+                user_exist = await self.user_client.check_user_exists(task_dict.get("operator"))
+                if not user_exist:
+                    raise InvalidTaskStateError(f"Operator with id {operator} does not exist")
             updated_task = await self.task_repository.update_task(task, task_dict)
             task_schema = TaskListSchema.model_validate(updated_task)
             return task_schema

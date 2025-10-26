@@ -7,10 +7,13 @@ class Settings(BaseSettings):
     db_pass: str = Field(default="password", alias="POSTGRES_PASSWORD")
     db_port: str = Field(default="5432", alias="POSTGRES_PORT")
     db_name: str = Field(default="task", alias="POSTGRES_DB")
+    db_echo: bool = Field(default=False, alias="DB_ECHO")
     secret_key: str = Field(..., alias="ACCESS_TOKEN_SECRET")
     algorithm: str = Field(default="HS256", alias="ALGORITHM")
     http_host: str = Field(default="localhost", alias="HTTP_HOST")
     http_port: int = Field(default=8081, alias="HTTP_PORT")
+    grpc_host: str = Field(default="localhost", alias="GRPC_HOST")
+    grpc_port: int = Field(default=50051, alias="GRPC_PORT")
 
     model_config = SettingsConfigDict(
         env_file="../.env", env_file_encoding="utf-8", extra="ignore"
@@ -18,6 +21,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-print(settings)
 
 REAL_DATABASE_URL = f"postgresql+asyncpg://{settings.db_user}:{settings.db_pass}@localhost:{settings.db_port}/{settings.db_name}"
+GRPC_ADDRESS = f"{settings.grpc_host}:{settings.grpc_port}"

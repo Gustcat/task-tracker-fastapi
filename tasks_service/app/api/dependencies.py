@@ -1,11 +1,10 @@
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing_extensions import Annotated
-
+from app.repository.dependecies import TaskRepoDep
 from app.repository.tasks import TaskRepository
 from app.service.tasks import TaskService
-from app.db.db import get_async_session
+from app.сlients.dependencies import UserClientDep
+from app.сlients.user_client import UserClient
 
 
-def get_task_service(session: Annotated[AsyncSession, Depends(get_async_session)]):
-    return TaskService(TaskRepository(session))
+async def get_task_service(repo: TaskRepository = TaskRepoDep,
+                           user_client: UserClient = UserClientDep) -> TaskService:
+    return TaskService(repo, user_client)

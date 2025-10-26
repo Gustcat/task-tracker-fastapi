@@ -2,12 +2,9 @@ from datetime import datetime, date
 from enum import StrEnum
 
 from sqlalchemy import String, DateTime, Boolean, CheckConstraint, ForeignKey, func
-from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-
-class Base(AsyncAttrs, DeclarativeBase):
-    pass
+from app.models.base import Base
 
 
 class TimestampModel:
