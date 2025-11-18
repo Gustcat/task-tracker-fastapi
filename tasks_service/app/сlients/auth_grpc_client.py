@@ -3,7 +3,7 @@ import grpc
 from app.proto.user import user_pb2_grpc, user_pb2
 
 
-class UserClient:
+class AuthGRPCClient:
     def __init__(self, address: str):
         self.address = address
 

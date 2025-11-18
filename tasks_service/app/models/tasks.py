@@ -9,12 +9,10 @@ from app.models.base import Base
 
 class TimestampModel:
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False
+        DateTime, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
         server_default=func.now(),
         server_onupdate=func.now(),
         nullable=False,
@@ -37,16 +35,16 @@ class TaskModel(Base, TimestampModel):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(250), nullable=False, unique=True)
-    description: Mapped[str | None] = mapped_column(nullable=True)
+    description: Mapped[str | None]
     status: Mapped[TaskStatus] = mapped_column(
         String(20), nullable=False, default=TaskStatus.NEW
     )
     author: Mapped[int] = mapped_column(nullable=False, index=True)
     author_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-    operator: Mapped[int | None] = mapped_column(nullable=True, index=True)
+    operator: Mapped[int | None] = mapped_column(index=True)
     operator_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-    target_date: Mapped[date | None] = mapped_column(nullable=True)
-    completed_at: Mapped[date | None] = mapped_column(nullable=True)
+    target_date: Mapped[date | None]
+    completed_at: Mapped[date | None]
     watchers: Mapped[list["TaskWatcherModel"]] = relationship(
         "TaskWatcherModel", back_populates="task", cascade="all, delete-orphan"
     )

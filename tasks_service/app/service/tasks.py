@@ -3,16 +3,16 @@ from datetime import datetime
 from app.exceptions import ForbiddenForUserRole, InvalidTaskStateError
 from app.models.tasks import TaskStatus, TaskModel, TaskWatcherModel
 from app.repository.tasks import TaskRepository
+from app.schemas.pagination import PaginationParams, PaginatedResponse
 from app.schemas.tasks import (
     TaskCreateSchema,
     TaskDetailSchema,
     TaskFilter,
     TaskListSchema,
-    PaginatedResponse,
-    TaskUpdateSchema,
+    TaskUpdateSchema
 )
 from app.schemas.users import User, Role
-from app.сlients.user_client import UserClient
+from app.сlients.auth_grpc_client import AuthGRPCClient
 
 
 def validate_input_task(user: User, old_task: TaskModel | None, task_dict: dict):
@@ -76,7 +76,7 @@ def validate_input_task(user: User, old_task: TaskModel | None, task_dict: dict)
 
 
 class TaskService:
-    def __init__(self, task_repository: TaskRepository, user_client: UserClient):
+    def __init__(self, task_repository: TaskRepository, user_client: AuthGRPCClient):
         self.task_repository = task_repository
         self.user_client = user_client
 
@@ -99,15 +99,17 @@ class TaskService:
         task_schema = TaskDetailSchema.model_validate(task_data)
         return task_schema
 
-    async def list_tasks(self, task_filter: TaskFilter) -> PaginatedResponse:
+    async def list_tasks(self, task_filter: TaskFilter, pagination: PaginationParams) -> PaginatedResponse:
         filter_dict = task_filter.model_dump(
             exclude_unset=True,
         )
-        tasks, has_next, offset, limit = await self.task_repository.list_tasks(
-            filter_dict
+        pagination_dict = pagination.model_dump()
+        tasks, has_next = await self.task_repository.list_tasks(
+            filter_dict, pagination_dict
         )
+        tasks_schemas = [TaskListSchema.model_validate(task) for task in tasks]
         return PaginatedResponse(
-            items=tasks, has_next=has_next, offset=offset, limit=limit
+            items=tasks_schemas, has_next=has_next, offset=pagination.offset, limit=pagination.limit
         )
 
     async def update_task(
@@ -131,7 +133,7 @@ class TaskService:
             task = await self.task_repository.get_basic_task(task_id)
             if user.role == Role.USER and user.id != task.author:
                 raise ForbiddenForUserRole(f"delete other people's tasks")
-            await self.task_repository.delete_task(task)
+            await self.task_repository.delete_task(task, autocommit=True)
 
     async def add_watcher(self, task_id: int, user_id: int):
         async with self.task_repository.session.begin():
@@ -142,4 +144,4 @@ class TaskService:
     async def remove_watcher(self, task_id: int, user_id: int):
         async with self.task_repository.session.begin():
             await self.task_repository.get_basic_task(task_id)
-            await self.task_repository.remove_watcher(task_id, user_id)
+            await self.task_repository.remove_watcher(task_id, user_id, autocommit=True)

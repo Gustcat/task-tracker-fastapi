@@ -1,6 +1,4 @@
-import sqlalchemy
 from sqlalchemy import select, update, delete
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,7 +9,7 @@ from app.exceptions import (
     TaskWatcherNotFoundError,
 )
 from app.models.tasks import TaskModel, TaskWatcherModel
-from app.repository.utils import flush_or_raise
+from app.utils.db_utils import flush_or_raise
 
 
 class TaskRepository:
@@ -52,8 +50,8 @@ class TaskRepository:
         return task
 
     async def list_tasks(
-        self, filter_dict: dict
-    ) -> tuple[list[TaskModel], bool, int, int]:
+        self, filter_dict: dict, pagination_dict: dict
+    ) -> tuple[list[TaskModel], bool]:
         query = select(TaskModel)
         if "watcher" in filter_dict:
             query = query.join(TaskModel.watchers).where(
@@ -68,22 +66,31 @@ class TaskRepository:
         if "title" in filter_dict:
             query = query.where(TaskModel.title.ilike(f"%{filter_dict['title']}%"))
 
-        limit = filter_dict["limit"]
-        offset = filter_dict["offset"]
-        order_field = getattr(TaskModel, filter_dict["order_by"])
+        limit = pagination_dict["limit"]
+        offset = pagination_dict["offset"]
 
-        if filter_dict["is_desc"]:
-            order_field = order_field.desc()
-        query = query.order_by(order_field).offset(offset).limit(limit + 1)
+        allowed_columns = {"created_at", "updated_at", "completed_at"}
+        order_by_name = filter_dict.get("order_by", "created_at")
+        if order_by_name not in allowed_columns:
+            order_by_name = "created_at"
+        order_field = getattr(TaskModel, order_by_name)
+
+        if filter_dict.get("is_desc"):
+            query = query.order_by(order_field.desc()).offset(offset).limit(limit + 1)
+        else:
+            query = query.order_by(order_field).offset(offset).limit(limit + 1)
+
         result = (await self.session.execute(query)).scalars().all()
 
         has_next = len(result) > limit
         result = result[:limit]
 
-        return list(result), has_next, offset, limit
+        return list(result), has_next
 
-    async def delete_task(self, task: TaskModel) -> None:
+    async def delete_task(self, task: TaskModel, autocommit: bool = False) -> None:
         await self.session.delete(task)
+        if not autocommit:
+            await self.session.commit()
 
     async def add_watcher(self, taskwatcher: TaskWatcherModel) -> None:
         self.session.add(taskwatcher)
@@ -91,7 +98,7 @@ class TaskRepository:
             self.session, TaskWatcherAlreadyExistsError, task_id=taskwatcher.task_id
         )
 
-    async def remove_watcher(self, task_id: int, user_id: int) -> None:
+    async def remove_watcher(self, task_id: int, user_id: int, autocommit: bool = False) -> None:
         result = await self.session.execute(
             delete(TaskWatcherModel).where(
                 TaskWatcherModel.task_id == task_id,
@@ -100,3 +107,6 @@ class TaskRepository:
         )
         if result.rowcount == 0:
             raise TaskWatcherNotFoundError(task_id)
+
+        if not autocommit:
+            await self.session.commit()

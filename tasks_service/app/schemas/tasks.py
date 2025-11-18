@@ -1,10 +1,13 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Literal, Annotated
 
+from annotated_types import MinLen, MaxLen
 from fastapi import HTTPException
-from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
+from pydantic import BaseModel, field_validator, ConfigDict, model_validator
 
 from app.models.tasks import TaskStatus
+
+title = Annotated[str, MinLen(2), MaxLen(250)]
 
 
 class TaskChangeSchema(BaseModel):
@@ -23,7 +26,7 @@ class TaskChangeSchema(BaseModel):
 
 
 class TaskCreateSchema(TaskChangeSchema):
-    title: str = Field(min_length=2, max_length=250)
+    title: title
 
     model_config = ConfigDict(extra="forbid")
 
@@ -35,7 +38,7 @@ class TaskCreateSchema(TaskChangeSchema):
 
 
 class TaskUpdateSchema(TaskChangeSchema):
-    title: str | None = Field(min_length=2, max_length=250, default=None)
+    title: title = None
     status: TaskStatus | None = None
 
     @field_validator("title", "description", "status", mode="before")
@@ -52,7 +55,7 @@ class TaskListSchema(BaseModel):
     id: int
     author: int
     author_deleted: bool
-    title: str = Field(min_length=2, max_length=250)
+    title: title
     description: str | None = None
     status: TaskStatus = TaskStatus.NEW
     operator: int | None = None
@@ -69,15 +72,7 @@ class TaskDetailSchema(TaskListSchema):
     updated_at: datetime = None
 
 
-class BaseFilter(BaseModel):
-    limit: int = Field(25, gt=0, le=100)
-    offset: int = Field(0, ge=0)
-    order_by: Literal["created_at", "updated_at"] = "created_at"
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class TaskFilter(BaseFilter):
+class TaskFilter(BaseModel):
     author: int | None = None
     operator: int | None = None
     watcher: int | None = None
@@ -85,10 +80,3 @@ class TaskFilter(BaseFilter):
     status: TaskStatus | None = None
     order_by: Literal["created_at", "updated_at", "completed_at"] = "created_at"
     is_desc: bool = True
-
-
-class PaginatedResponse(BaseModel):
-    items: list[TaskListSchema]
-    has_next: bool
-    limit: int = Field(gt=0)
-    offset: int = Field(ge=0)

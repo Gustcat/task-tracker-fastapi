@@ -28,4 +28,4 @@ class TaskWatcherAlreadyExistsError(AppError):
 
 class TaskWatcherNotFoundError(AppError):
     def __init__(self, task_id: int):
-        super().__init__(f"Task with {task_id=} not found")
+        super().__init__(f"You didn't watch for task with {task_id=}")

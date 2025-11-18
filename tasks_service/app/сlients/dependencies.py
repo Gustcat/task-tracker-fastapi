@@ -1,10 +1,10 @@
 from fastapi import Depends
 
-from app.settings import GRPC_ADDRESS
-from app.сlients.user_client import UserClient
+from app.settings import settings
+from app.сlients.auth_grpc_client import AuthGRPCClient
 
 
-async def get_task_client() -> UserClient:
-    return UserClient(GRPC_ADDRESS)
+async def get_task_client() -> AuthGRPCClient:
+    return AuthGRPCClient(settings.GRPC_ADDRESS)
 
-UserClientDep = Depends(get_task_client)
+AuthGRPCClientDep = Depends(get_task_client)

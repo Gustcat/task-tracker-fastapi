@@ -3,12 +3,15 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-from app.settings import REAL_DATABASE_URL, settings
+from app.settings import settings
 
-engine = create_async_engine(REAL_DATABASE_URL, future=settings.db_echo, echo=True)
+engine = create_async_engine(settings.REAL_DATABASE_URL, echo=settings.db_echo)
 
 async_session = async_sessionmaker(
-    engine, expire_on_commit=False, class_=AsyncSession
+    engine,
+    expire_on_commit=False,
+    class_=AsyncSession,
+    autoflush=False,
 )
 
 
